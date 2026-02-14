@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="mr">
 <head>
@@ -55,7 +54,7 @@
         /* Animations */
         @keyframes floating {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-15px); }
         }
         .animate-float {
             animation: floating 3s ease-in-out infinite;
@@ -70,18 +69,31 @@
         }
 
         @keyframes flameGlow {
-            0%, 100% { filter: drop-shadow(0 0 5px #ffcc00) brightness(1); }
-            50% { filter: drop-shadow(0 0 20px #ff6600) brightness(1.5); }
+            0%, 100% { filter: drop-shadow(0 0 5px #ffcc00) brightness(1); transform: scale(1) translateX(-50%); }
+            50% { filter: drop-shadow(0 0 25px #ff6600) brightness(1.6); transform: scale(1.1) translateX(-50%); }
         }
         .flame-glow {
             animation: flameGlow 1.2s ease-in-out infinite;
         }
 
-        .text-gradient {
-            background: linear-gradient(to bottom, #fff700 0%, #ff8c00 45%, #ff0000 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
+        @keyframes pulse-custom {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px 10px rgba(234, 88, 12, 0); }
+        }
+        .animate-pulse-button {
+            animation: pulse-custom 2s infinite;
+        }
+
+        /* Updated to solid Deep Saffron (भगवा) with NO SHADOW as requested */
+        .greeting-text {
+            color: #FF671F; /* Vivid Deep Saffron / भगवा */
+            text-shadow: none;
+            filter: none;
+        }
+
+        /* Splash Overlay Styles */
+        .splash-screen {
+            background: radial-gradient(circle at center, #1a0f00 0%, #050505 100%);
         }
     </style>
     <script type="importmap">
@@ -100,12 +112,13 @@
     <script type="module">
         import React, { useState, useEffect, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Send, Flame } from 'lucide-react';
+        import { Send, Flame, Sparkles } from 'lucide-react';
 
         const App = () => {
             const [inputName, setInputName] = useState('');
             const [displayName, setDisplayName] = useState('');
             const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+            const [showSplash, setShowSplash] = useState(true);
             const audioRef = useRef(null);
 
             useEffect(() => {
@@ -114,25 +127,11 @@
                 audio.loop = true;
                 audioRef.current = audio;
 
-                const startMusic = () => {
-                    if (audioRef.current) {
-                        audioRef.current.play().then(() => {
-                            window.removeEventListener('touchstart', startMusic);
-                            window.removeEventListener('click', startMusic);
-                        }).catch(e => console.debug("Audio play deferred", e));
-                    }
-                };
-
-                window.addEventListener('touchstart', startMusic);
-                window.addEventListener('click', startMusic);
-
                 const handleResize = () => setIsKeyboardVisible(window.innerHeight < 550);
                 window.addEventListener('resize', handleResize);
 
                 return () => {
                     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-                    window.removeEventListener('touchstart', startMusic);
-                    window.removeEventListener('click', startMusic);
                     window.removeEventListener('resize', handleResize);
                 };
             }, []);
@@ -161,6 +160,13 @@
                 };
             }, [syncFromUrl]);
 
+            const startApp = () => {
+                if (audioRef.current) {
+                    audioRef.current.play().catch(e => console.debug("Audio play blocked", e));
+                }
+                setShowSplash(false);
+            };
+
             const handleShare = (e) => {
                 if (e) e.preventDefault();
                 const name = inputName.trim();
@@ -186,6 +192,42 @@
             };
 
             return React.createElement('div', { className: 'app-container' },
+                // SPLASH OVERLAY
+                React.createElement('div', {
+                    className: `absolute inset-0 z-[100] splash-screen flex flex-col items-center justify-center transition-all duration-1000 ${showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
+                },
+                    React.createElement('div', { className: 'animate-float flex flex-col items-center' },
+                        // Glowing Diva Animation
+                        React.createElement('div', { className: 'relative w-32 h-20 mb-12' },
+                            // Flame
+                            React.createElement('div', { className: 'absolute -top-12 left-1/2 -translate-x-1/2 text-orange-500 flame-glow' },
+                                React.createElement(Flame, { size: 60, fill: '#ffcc00', strokeWidth: 0.5 })
+                            ),
+                            // Diva Base (SVG)
+                            React.createElement('svg', { viewBox: "0 0 100 50", className: "w-full h-full drop-shadow-2xl" },
+                                React.createElement('path', {
+                                    d: "M5,20 Q50,60 95,20 L95,25 Q50,65 5,25 Z",
+                                    fill: "#4a2c00"
+                                }),
+                                React.createElement('path', {
+                                    d: "M5,20 Q50,45 95,20 Q50,10 5,20",
+                                    fill: "#6d4100"
+                                })
+                            )
+                        ),
+                        React.createElement('h1', { className: 'marathi-font text-orange-200 text-3xl font-bold mb-8 tracking-wider drop-shadow-lg' }, 'ॐ नमः शिवाय'),
+                        // Pulsating Button
+                        React.createElement('button', {
+                            onClick: startApp,
+                            className: 'marathi-font animate-pulse-button bg-gradient-to-r from-orange-600 via-red-600 to-red-800 text-white text-2xl px-10 py-3 rounded-full font-bold shadow-2xl flex items-center gap-3 active:scale-95 transition-transform'
+                        }, 
+                            'शुभेच्छा पहा',
+                            React.createElement(Sparkles, { size: 24 })
+                        )
+                    )
+                ),
+
+                // MAIN CONTENT
                 React.createElement('div', {
                     className: 'absolute inset-0 z-0',
                     style: {
@@ -217,9 +259,9 @@
                             React.createElement('h2', { className: 'marathi-font leading-tight font-black' },
                                 displayName ? React.createElement(React.Fragment, null,
                                     React.createElement('span', { className: 'text-orange-950 text-4xl block mb-3 drop-shadow-xl font-bold tracking-wide' }, displayName),
-                                    React.createElement('span', { className: 'text-gradient text-2xl sm:text-3xl block uppercase tracking-tight leading-relaxed' }, 
+                                    React.createElement('span', { className: 'greeting-text text-2xl sm:text-3xl block uppercase tracking-tight leading-relaxed' }, 
                                         'यांच्याकडून महाशिवरात्रीच्या ', React.createElement('br'), ' तुम्हाला हार्दिक हार्दिक शुभेच्छा')
-                                ) : React.createElement('span', { className: 'text-gradient text-3xl sm:text-4xl block leading-normal drop-shadow-lg' }, 
+                                ) : React.createElement('span', { className: 'greeting-text text-3xl sm:text-4xl block leading-normal' }, 
                                     'तुम्हा व तुमच्या परिवारास ', React.createElement('br'), ' महाशिवरात्रीच्या हार्दिक हार्दिक शुभेच्छा')
                             )
                         )
