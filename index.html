@@ -20,8 +20,8 @@
             height: 100%;
             width: 100%;
             overflow: hidden;
-            position: fixed; /* Prevent any accidental scrolling */
-            background-color: #0a0a0a;
+            position: fixed;
+            background-color: #000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -77,30 +77,179 @@
             animation: flameGlow 1.2s ease-in-out infinite;
         }
 
-        /* Gradient for Marathi Text */
         .text-gradient {
             background: linear-gradient(to bottom, #fff700 0%, #ff8c00 45%, #ff0000 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
         }
-
-        .text-outline {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.9), -2px -2px 4px rgba(0,0,0,0.9);
-        }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
-  }
-}
-</script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@^19.2.4",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+      }
+    }
+    </script>
 </head>
 <body>
     <div id="root"></div>
+    <script type="module">
+        import React, { useState, useEffect, useRef, useCallback } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { Send, Flame } from 'lucide-react';
+
+        const App = () => {
+            const [inputName, setInputName] = useState('');
+            const [displayName, setDisplayName] = useState('');
+            const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+            const audioRef = useRef(null);
+
+            useEffect(() => {
+                const audioUrl = "https://image2url.com/r2/default/audio/1771060491157-1090b1c8-bffc-4405-bf36-31664fa55ee0.mp3";
+                const audio = new Audio(audioUrl);
+                audio.loop = true;
+                audioRef.current = audio;
+
+                const startMusic = () => {
+                    if (audioRef.current) {
+                        audioRef.current.play().then(() => {
+                            window.removeEventListener('touchstart', startMusic);
+                            window.removeEventListener('click', startMusic);
+                        }).catch(e => console.debug("Audio play deferred", e));
+                    }
+                };
+
+                window.addEventListener('touchstart', startMusic);
+                window.addEventListener('click', startMusic);
+
+                const handleResize = () => setIsKeyboardVisible(window.innerHeight < 550);
+                window.addEventListener('resize', handleResize);
+
+                return () => {
+                    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+                    window.removeEventListener('touchstart', startMusic);
+                    window.removeEventListener('click', startMusic);
+                    window.removeEventListener('resize', handleResize);
+                };
+            }, []);
+
+            const syncFromUrl = useCallback(() => {
+                const params = new URLSearchParams(window.location.search);
+                let name = params.get('n');
+                if (!name && window.location.hash) {
+                    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                    name = hashParams.get('n');
+                }
+                if (name) {
+                    try { setDisplayName(decodeURIComponent(name)); } catch (e) { setDisplayName(name); }
+                } else {
+                    setDisplayName('');
+                }
+            }, []);
+
+            useEffect(() => {
+                syncFromUrl();
+                window.addEventListener('popstate', syncFromUrl);
+                window.addEventListener('hashchange', syncFromUrl);
+                return () => {
+                    window.removeEventListener('popstate', syncFromUrl);
+                    window.removeEventListener('hashchange', syncFromUrl);
+                };
+            }, [syncFromUrl]);
+
+            const handleShare = (e) => {
+                if (e) e.preventDefault();
+                const name = inputName.trim();
+                if (!name) return;
+
+                const encodedName = encodeURIComponent(name);
+                const query = `?n=${encodedName}`;
+                setDisplayName(name);
+
+                let baseUrl = window.location.href.split('?')[0].split('#')[0];
+                const shareUrl = `${baseUrl}${query}`;
+
+                try {
+                    if (window.history && typeof window.history.pushState === 'function' && window.location.protocol !== 'blob:') {
+                        window.history.pushState({ n: name }, '', query);
+                    }
+                } catch (err) { console.debug("PushState restricted", err); }
+
+                const message = `🚩 *महाशिवरात्रीच्या हार्दिक शुभेच्छा* 🚩\n\n${name} यांनी तुमच्यासाठी एक खास शुभेच्छा संदेश पाठवला आहे. खालील लिंकवर क्लिक करून पहा:\n\n${shareUrl}`;
+                const whatsappLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+                window.open(whatsappLink, '_blank');
+                setInputName('');
+            };
+
+            return React.createElement('div', { className: 'app-container' },
+                React.createElement('div', {
+                    className: 'absolute inset-0 z-0',
+                    style: {
+                        backgroundImage: "url('https://res.cloudinary.com/dgxc8kzz8/image/upload/v1771057899/F_hpvx1d.jpg')",
+                        backgroundSize: '100% 100%',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat'
+                    }
+                }),
+                React.createElement('div', { className: 'relative z-10 w-full h-full flex flex-col justify-between' },
+                    React.createElement('div', { className: `${isKeyboardVisible ? 'h-[20%]' : 'h-[52%]'} w-full relative` },
+                        React.createElement('div', { className: 'absolute left-6 bottom-4 animate-sway opacity-60' },
+                            React.createElement('div', { className: 'bg-orange-900 w-5 h-2.5 rounded-b-full relative' },
+                                React.createElement('div', { className: 'absolute -top-5 left-1/2 -translate-x-1/2 text-orange-400 flame-glow' },
+                                    React.createElement(Flame, { size: 18, fill: '#ff8c00', strokeWidth: 1 })
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'absolute right-6 bottom-4 animate-sway [animation-delay:-1.2s] opacity-60' },
+                            React.createElement('div', { className: 'bg-orange-900 w-5 h-2.5 rounded-b-full relative' },
+                                React.createElement('div', { className: 'absolute -top-5 left-1/2 -translate-x-1/2 text-orange-400 flame-glow' },
+                                    React.createElement(Flame, { size: 18, fill: '#ff8c00', strokeWidth: 1 })
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'flex-1 w-full flex flex-col items-center justify-center px-6 text-center' },
+                        React.createElement('div', { key: displayName, className: 'animate-float' },
+                            React.createElement('h2', { className: 'marathi-font leading-tight font-black' },
+                                displayName ? React.createElement(React.Fragment, null,
+                                    React.createElement('span', { className: 'text-orange-950 text-4xl block mb-3 drop-shadow-xl font-bold tracking-wide' }, displayName),
+                                    React.createElement('span', { className: 'text-gradient text-2xl sm:text-3xl block uppercase tracking-tight leading-relaxed' }, 
+                                        'यांच्याकडून महाशिवरात्रीच्या ', React.createElement('br'), ' तुम्हाला हार्दिक हार्दिक शुभेच्छा')
+                                ) : React.createElement('span', { className: 'text-gradient text-3xl sm:text-4xl block leading-normal drop-shadow-lg' }, 
+                                    'तुम्हा व तुमच्या परिवारास ', React.createElement('br'), ' महाशिवरात्रीच्या हार्दिक हार्दिक शुभेच्छा')
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: `${isKeyboardVisible ? 'pb-2' : 'pb-14'} w-full px-8 flex flex-col items-center gap-3 transition-all duration-300` },
+                        React.createElement('div', { className: 'w-full max-w-[280px] flex flex-col gap-2.5' },
+                            React.createElement('p', { className: 'text-cyan-300 text-[10px] font-bold text-center uppercase tracking-[0.25em] drop-shadow-md animate-pulse' }, 'तुमचे नाव टाकून शुभेच्छा पाठवा 👇'),
+                            React.createElement('form', { onSubmit: handleShare, className: 'flex items-center gap-2 bg-black/50 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 shadow-2xl w-full' },
+                                React.createElement('input', {
+                                    type: 'text',
+                                    value: inputName,
+                                    onChange: (e) => setInputName(e.target.value),
+                                    placeholder: 'तुमचे नाव...',
+                                    className: 'flex-1 min-w-0 bg-white/90 border-none outline-none px-4 py-3 rounded-xl text-slate-900 font-bold marathi-font text-xl placeholder:font-normal placeholder:text-slate-400',
+                                    maxLength: 18,
+                                    autoComplete: 'off'
+                                }),
+                                React.createElement('button', {
+                                    type: 'submit',
+                                    className: 'bg-gradient-to-br from-orange-500 via-red-600 to-red-800 text-white p-4 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-xl border border-white/10 shrink-0'
+                                }, React.createElement(Send, { size: 22, fill: 'currentColor', stroke: 'none' }))
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+    </script>
 </body>
 </html>
